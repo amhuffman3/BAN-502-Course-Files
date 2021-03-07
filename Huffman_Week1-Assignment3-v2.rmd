@@ -1,0 +1,63 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+# BAN 502 Week 1 Assignment 3
+## Huffman, Abigail
+### R and RStudio Refresher
+
+
+```{r include=FALSE}
+#install.packages("tidyverse")
+library(tidyverse)
+```
+
+```{r include=FALSE}
+library(ggplot2)
+diamonddata = diamonds
+#str(diamonddata)
+```
+
+```{r Task 3}
+ggplot(diamonddata, aes(x = carat, y = price)) +
+  geom_point()
+```
+
+**The scatter plot seems to indicate that as the carat size increases, the price increases as well.**  
+
+```{r Task 4}
+ggplot(diamonddata, aes(x = carat, y = price, color = cut)) +
+  geom_point()
+```
+
+**In general, as the carat size increases, the price increases. Adding in the variable of cut, we can see that the quality of the cut makes an impact on price. A diamond of ideal cut will cost more at a smaller carat size than a diamond of fair cut at the same carat size**  
+
+```{r Task 5}
+ggplot(diamonddata, aes(x = carat, y = price, color = cut)) +
+  geom_point() +
+  facet_wrap(~ color)
+```
+
+**For each color, we see that cut and carat are important factors when considering price. A more ideal cut yields a higher price at a lower carat size. This facet of graphs shows us that color is important when determining price as well. A better color, like D, will cost you more than a lower quality color at the same carat and cut.**  
+
+```{r Task 6 and 7}
+inventory <- read_csv("InventoryData.csv")
+#summary(inventory)
+#str(inventory)
+
+inventoryA <- inventory %>%
+  filter(Supplier == "A")
+#str(inventoryA)
+```
+
+**There are 3,695 rows in data frame inventoryA.**  
+**The code in task 8 will take the inventoryA data frame and create a new variable called OnHandRatio that will be the result of taking the Annual Demand number and dividing it by the On Hand inventory number.**
+
+```{r Task 9}
+avg_cost <- inventoryA %>%
+  group_by(`Item SKU`) %>%
+  summarise(SKUAvgCost = mean(`Cost per Unit ($)`, na.rm = TRUE), .groups = 'drop')
+```
+
+**In previous courses, I didn't learn about things like facet_wrap or Esquisse. Those were new for me. I also had trouble with task nine and had to find how to use .groups =.Everything else was a great refresher.**

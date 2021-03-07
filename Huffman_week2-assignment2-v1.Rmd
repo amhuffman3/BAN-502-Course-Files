@@ -1,0 +1,139 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+# Multiple Linear Regression Assignment
+## Huffman, Abigail  
+
+```{r include=FALSE}
+#install.packages("glmnet")
+#install.packages("ggcorrplot")
+#install.packages("car")
+
+library(tidyverse)
+library(tidymodels)
+library(glmnet)
+library(GGally)
+library(ggcorrplot)
+library(MASS)
+library(car)
+library(lubridate)
+library(lmtest)
+```
+
+```{r}
+bike <- read_csv("C:/Users/abiga/OneDrive - UNC-Wilmington/BAN502/Module 2/bike_cleaned.csv")
+
+bike = bike %>% mutate(dteday = mdy(dteday)) #mdy is a lubridate package function
+
+bike = bike %>% mutate_if(is.character,as_factor)
+
+bike = bike %>% mutate(hr = as_factor(hr))
+```
+**We convert hour into a factor to look at the levels of the hours as a category rather than a numeric value. We want to see what happens at each hour.**  
+
+```{r Task 2}
+ggpairs(bike, c("temp", "atemp","hum", "windspeed","count"))
+ggcorr(bike, label =TRUE, label_round = 2)
+```
+**temp is the best correlated to count, but still isn't very strong.**  
+
+```{r Task 3}
+ggplot(bike,aes(x=season,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=mnth,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=holiday,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=weekday,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=workingday,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=weathersit,y=count)) + geom_boxplot() + theme_bw()
+```
+**season, month and weather seem to impact count. The box plots are showing the mean changing enough and the range of the box more often than the other variables. Most of the data points are moving depending on the level of the factor.**  
+
+```{r Task 4 model}
+bike_recipe = recipe(count ~ temp, bike)
+
+lm_model = 
+  linear_reg() %>% 
+  set_engine("lm")  
+
+lm_wflow = 
+  workflow() %>% 
+  add_model(lm_model) %>% 
+  add_recipe(bike_recipe)
+
+lm_fit = fit(lm_wflow, bike)
+```
+
+```{r task 4 summary}
+summary(lm_fit$fit$fit$fit)
+```
+**This is not the best model because the r squared is very small. We probably need to look at more variables.**  
+
+```{r Task 5}
+bike_recipe2 = recipe(count ~ ., bike) %>%
+  step_rm(instant,dteday,registered,casual) %>%
+  step_dummy(all_nominal()) %>%
+  step_center(all_predictors()) %>% 
+  step_scale(all_predictors())
+  
+ridge_model = 
+  linear_reg(mixture = 0) %>% 
+  set_engine("glmnet")  
+
+ridge_wflow = 
+  workflow() %>% 
+  add_model(ridge_model) %>% 
+  add_recipe(bike_recipe2)
+
+ridge_fit = fit(ridge_wflow, bike)
+```
+
+```{r Task 5 fit}
+ridge_fit %>%
+  pull_workflow_fit() %>%
+  pluck("fit")  
+```
+
+```{r task 5 coefficents}
+ridge_fit %>%
+  pull_workflow_fit() %>%
+  pluck("fit")  %>% 
+  coef(s = 15)
+```
+**The model is making me feel more strongly that temp and weather impact count. Some of the variables are almost at zero, so they are likely less significant, like some of the days of the week and some months.**  
+
+```{r Task 6}
+bike_recipe2 = recipe(count ~ ., bike) %>%
+  step_rm(instant,dteday,registered,casual) %>%
+  step_dummy(all_nominal()) %>%
+  step_center(all_predictors()) %>% 
+  step_scale(all_predictors())
+  
+  
+lasso_model = 
+  linear_reg(mixture = 1) %>% 
+  set_engine("glmnet")  
+
+lasso_wflow = 
+  workflow() %>% 
+  add_model(lasso_model) %>% 
+  add_recipe(bike_recipe2)
+
+lasso_fit = fit(lasso_wflow, bike)
+```
+
+```{r task 6 fit}
+lasso_fit %>%
+  pull_workflow_fit() %>%
+  pluck("fit")  
+```
+
+```{r task 6 coefficients}
+lasso_fit %>%
+  pull_workflow_fit() %>%
+  pluck("fit")  %>% 
+  coef(s = 0.190)
+```
+**I am not surprised to see lasso take out some of the months and weekdays. In the ridge model, we could see these were quite small. Now we know that the items removed have no impact on count.**  
+
+**What are the implications of the model results from the ridge and lasso methods?** We are able to see that there are some variables that have levels that do not impact the count. We also are subjectively picking a lambda at this point. I could probably play around with the lambda and find other levels get removed. The lambda we choose can impact the variables we eliminate. The lambda impacts the quality of the model.
